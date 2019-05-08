@@ -39,18 +39,24 @@ func (m *Monitor) Start() {
 
 		now := f.ModTime().String()
 
-		if now != m.ModifyTime {
-			m.ModifyTime = now
-
-			out, e := m.ExecShell(m.Cmds)
-			if e != nil {
-				cprint.PrintFaild(m.Writer, m.Cmds, e)
-			} else {
-				cprint.PrintSuccess(m.Writer, m.Cmds, out)
-			}
+		if now == m.ModifyTime {
+			time.Sleep(INTERVAL * time.Second)
+			continue
 		}
 
-		time.Sleep(INTERVAL * time.Second)
+		m.ModifyTime = now
+
+		c := cprint.PrintExecuting(m.Writer, m.Cmds)
+
+		out, e := m.ExecShell(m.Cmds)
+
+		c <- true
+		if e != nil {
+			cprint.PrintFaild(m.Writer, m.Cmds, e)
+		} else {
+			cprint.PrintSuccess(m.Writer, m.Cmds, out)
+		}
+
 	}
 }
 
