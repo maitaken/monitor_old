@@ -1,6 +1,7 @@
 package cprint
 
 import (
+	"context"
 	"os/exec"
 	"time"
 
@@ -9,6 +10,8 @@ import (
 )
 
 const POINT = "...................."
+
+// const
 
 func PrintSuccess(w *uilive.Writer, cmds string, out []byte) {
 	Clear(w)
@@ -27,28 +30,21 @@ func PrintFaild(w *uilive.Writer, cmds string, out []byte, e error) {
 	return
 }
 
-func PrintExecuting(w *uilive.Writer, cmds string) chan bool {
-	c := make(chan bool, 1)
-
+func PrintExecuting(ctx context.Context, w *uilive.Writer, cmds string) {
 	Clear(w)
 
-	go func() {
-		for {
-			for i := 0; i < len(POINT); i++ {
-				if len(c) != 0 {
-					return
-				}
-
+	for {
+		for i := 0; i < len(POINT); i++ {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(time.Millisecond * 500):
 				w.Write([]byte(chalk.Yellow.Color("Command Executing")))
 				w.Write([]byte(" : " + cmds + "\n"))
 				w.Write([]byte(string(POINT[:i]) + "\n"))
-				w.Flush()
-				time.Sleep(time.Millisecond * 500)
 			}
 		}
-	}()
-
-	return c
+	}
 }
 
 func Clear(w *uilive.Writer) {

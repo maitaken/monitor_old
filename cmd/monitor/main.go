@@ -27,13 +27,11 @@ func Handler(c *cli.Context) (e error) {
 
 	if c.NArg() < 2 {
 		fmt.Println("invalid argument")
+		fmt.Println("monitor [filename][ \"Command\"]")
 		os.Exit(1)
 	}
 
-	m := &monitor.Monitor{
-		TargetFile: c.Args().Get(0),
-		Cmds:       c.Args().Get(1),
-	}
+	m := monitor.New(c.Args().Get(0), c.Args().Get(1))
 
 	m.Start()
 

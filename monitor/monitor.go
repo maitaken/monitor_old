@@ -18,18 +18,21 @@ type Monitor struct {
 	TargetFile string
 	ModifyTime string
 	Writer     *uilive.Writer
+	Cancel     context.CancelFunc
 }
 
 type CommandResult struct {
-	out []byte
-	e   error
+	out    []byte
+	e      error
+	cancel context.CancelFunc
 }
 
-// func (m *Monitor) New() *Monitor {
-// 	return &Monitor{
-// 		Cmds:
-// 	}
-// }
+func New(file string, cmds string) *Monitor {
+	return &Monitor{
+		Cmds:       cmds,
+		TargetFile: file,
+	}
+}
 
 func (m *Monitor) Start() {
 	m.Writer = uilive.New()
@@ -44,17 +47,14 @@ func (m *Monitor) Start() {
 			continue
 		}
 
-		c := cprint.PrintExecuting(m.Writer, m.Cmds)
-
-		out, e, _ := m.ExecShell(m.Cmds)
-
-		c <- true
-
-		if e != nil {
-			cprint.PrintFaild(m.Writer, m.Cmds, out, e)
-		} else {
-			cprint.PrintSuccess(m.Writer, m.Cmds, out)
+		if m.Cancel != nil {
+			m.Cancel()
+			m.Cancel = nil
 		}
+
+		c := make(chan context.CancelFunc, 1)
+
+		m.Cancel = m._ExecShell(c)
 
 	}
 
@@ -82,8 +82,23 @@ func (m *Monitor) _Monitor(c chan string) {
 	}
 }
 
-func (m *Monitor) ExecShell(cmds string) ([]byte, error, context.CancelFunc) {
+func (m *Monitor) _ExecShell(c chan context.CancelFunc) context.CancelFunc {
 	ctx, cancel := context.WithCancel(context.Background())
-	out, e := exec.CommandContext(ctx, "sh", "-c", m.Cmds).CombinedOutput()
-	return out, e, cancel
+
+	go func(ctx context.Context) {
+		printCtx, printCancel := context.WithCancel(ctx)
+		go cprint.PrintExecuting(printCtx, m.Writer, m.Cmds)
+
+		out, e := exec.CommandContext(printCtx, "sh", "-c", m.Cmds).CombinedOutput()
+		printCancel()
+		if e != nil {
+			cprint.PrintFaild(m.Writer, m.Cmds, out, e)
+		} else {
+			cprint.PrintSuccess(m.Writer, m.Cmds, out)
+		}
+		m.Cancel = nil
+
+	}(ctx)
+
+	return cancel
 }
