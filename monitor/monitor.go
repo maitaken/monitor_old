@@ -1,6 +1,7 @@
 package monitor
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -19,6 +20,11 @@ type Monitor struct {
 	Writer     *uilive.Writer
 }
 
+type CommandResult struct {
+	out []byte
+	e   error
+}
+
 // func (m *Monitor) New() *Monitor {
 // 	return &Monitor{
 // 		Cmds:
@@ -29,28 +35,21 @@ func (m *Monitor) Start() {
 	m.Writer = uilive.New()
 	m.Writer.Start()
 
+	monitorChan := make(chan string, 1)
+	go m._Monitor(monitorChan)
+
 	for {
-		f, e := os.Stat(m.TargetFile)
-
-		if e != nil {
-			fmt.Println("FileNotFoundError : ", e)
-			os.Exit(1)
-		}
-
-		now := f.ModTime().String()
-
-		if now == m.ModifyTime {
-			time.Sleep(INTERVAL * time.Second)
+		isChanged := <-monitorChan
+		if isChanged == "nochange" {
 			continue
 		}
 
-		m.ModifyTime = now
-
 		c := cprint.PrintExecuting(m.Writer, m.Cmds)
 
-		out, e := m.ExecShell(m.Cmds)
+		out, e, _ := m.ExecShell(m.Cmds)
 
 		c <- true
+
 		if e != nil {
 			cprint.PrintFaild(m.Writer, m.Cmds, out, e)
 		} else {
@@ -58,9 +57,33 @@ func (m *Monitor) Start() {
 		}
 
 	}
+
 }
 
-func (m *Monitor) ExecShell(cmds string) ([]byte, error) {
-	out, e := exec.Command("sh", "-c", m.Cmds).CombinedOutput()
-	return out, e
+func (m *Monitor) _Monitor(c chan string) {
+
+	for {
+		f, e := os.Stat(m.TargetFile)
+
+		if e != nil {
+			fmt.Println("Error : ", e)
+			os.Exit(1)
+		}
+
+		now := f.ModTime().String()
+
+		if now != m.ModifyTime {
+			m.ModifyTime = now
+			c <- "change"
+		} else {
+			c <- "nochange"
+		}
+		time.Sleep(INTERVAL * time.Second)
+	}
+}
+
+func (m *Monitor) ExecShell(cmds string) ([]byte, error, context.CancelFunc) {
+	ctx, cancel := context.WithCancel(context.Background())
+	out, e := exec.CommandContext(ctx, "sh", "-c", m.Cmds).CombinedOutput()
+	return out, e, cancel
 }
