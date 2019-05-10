@@ -52,7 +52,7 @@ func (m *Monitor) Start() {
 
 		c <- true
 		if e != nil {
-			cprint.PrintFaild(m.Writer, m.Cmds, e)
+			cprint.PrintFaild(m.Writer, m.Cmds, out, e)
 		} else {
 			cprint.PrintSuccess(m.Writer, m.Cmds, out)
 		}
@@ -61,6 +61,6 @@ func (m *Monitor) Start() {
 }
 
 func (m *Monitor) ExecShell(cmds string) ([]byte, error) {
-	out, e := exec.Command("sh", "-c", m.Cmds).Output()
+	out, e := exec.Command("sh", "-c", m.Cmds).CombinedOutput()
 	return out, e
 }

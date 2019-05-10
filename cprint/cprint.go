@@ -18,11 +18,11 @@ func PrintSuccess(w *uilive.Writer, cmds string, out []byte) {
 	return
 }
 
-func PrintFaild(w *uilive.Writer, cmds string, e error) {
-	Clear(w)
+func PrintFaild(w *uilive.Writer, cmds string, out []byte, e error) {
 	w.Write([]byte(chalk.Red.Color("Command Faild")))
 	w.Write([]byte(" : " + cmds + "\n"))
-	w.Write([]byte(e.Error()))
+	w.Write([]byte(e.Error() + "\n"))
+	w.Write(out)
 	return
 }
 
