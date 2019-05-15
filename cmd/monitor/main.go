@@ -17,7 +17,7 @@ func main() {
 
 	app.Name = "Monitor"
 	app.Usage = "Monitor single file changes and run a shell"
-	app.Version = "0.0.1"
+	app.Version = "0.0.3"
 
 	app.Action = Handler
 	app.Run(os.Args)
