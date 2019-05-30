@@ -1,39 +1,41 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/maitaken/monitor/monitor"
+	"github.com/maitaken/monitor/run"
 	"github.com/urfave/cli"
 )
 
-var m *monitor.Monitor
+const version = "v0.0.4"
 
 func main() {
-	app := cli.NewApp()
+	app := newApp()
 
-	// fmt.Println(m)
+	app.Action = run.Run
 
-	app.Name = "Monitor"
-	app.Usage = "Monitor single file changes and run a shell"
-	app.Version = "0.0.3"
-
-	app.Action = Handler
-	app.Run(os.Args)
+	if e := app.Run(os.Args); e != nil {
+		exitCode := 1
+		os.Exit(exitCode)
+	}
 }
 
-func Handler(c *cli.Context) (e error) {
+func newApp() *cli.App {
+	app := cli.NewApp()
+	app.Name = "Monitor"
+	app.Usage = "Monitor files changed and run a command"
+	app.Author = "maitaken"
+	app.Version = version
+	app.Flags = appFlag()
 
-	if c.NArg() < 2 {
-		fmt.Println("invalid argument")
-		fmt.Println("monitor [filename][ \"Command\"]")
-		os.Exit(1)
+	return app
+}
+
+func appFlag() []cli.Flag {
+	return []cli.Flag{
+		cli.StringSliceFlag{
+			Name:  "file, f",
+			Usage: "Monitoring file name",
+		},
 	}
-
-	m := monitor.New(c.Args().Get(0), c.Args().Get(1))
-
-	m.Start()
-
-	return e
 }
