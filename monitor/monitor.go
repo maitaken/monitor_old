@@ -6,13 +6,13 @@ import (
 	"time"
 )
 
-const INTERVAL = 1
+const INTERVAL = 500
 
 func Start(c chan<- string, file string) {
 	var modifyTime string
 
 	go func() {
-		for {
+		for range time.Tick(INTERVAL * time.Millisecond) {
 			f, e := os.Stat(file)
 
 			if e != nil {
@@ -25,10 +25,7 @@ func Start(c chan<- string, file string) {
 			if now != modifyTime {
 				modifyTime = now
 				c <- "change"
-			} else {
-				c <- "nochange"
 			}
-			time.Sleep(INTERVAL * time.Second)
 		}
 	}()
 }
