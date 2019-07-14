@@ -42,7 +42,7 @@ func (w *ShellWriter) Execute() context.CancelFunc {
 		execCancel()
 
 		if e != nil {
-			w.errorPrint(e)
+			w.errorPrint(out)
 		} else {
 			w.successPrint(out)
 		}
@@ -71,11 +71,11 @@ func (w *ShellWriter) executePrint(ctx context.Context) {
 }
 
 // コマンドの実行結果がエラー時の出力
-func (w *ShellWriter) errorPrint(e error) {
+func (w *ShellWriter) errorPrint(out []byte) {
 	fmt.Fprint(w.writer, string(clear()))
 	fmt.Fprint(w.writer, chalk.Red.Color("Command Faild"))
 	fmt.Fprintln(w.writer, " : "+w.cmd)
-	fmt.Fprint(w.writer, e.Error())
+	fmt.Fprint(w.writer, string(out))
 }
 
 // コマンドの実行結果が成功時の出力

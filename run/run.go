@@ -2,7 +2,6 @@ package run
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/maitaken/monitor/monitor"
 	"github.com/maitaken/monitor/option"
@@ -19,7 +18,6 @@ func Run(c *cli.Context) {
 	shell := util.New(opt.Cmd)
 	var cancelFunc context.CancelFunc
 
-	fmt.Println(opt.TargetFile)
 	for _, file := range opt.TargetFile {
 		monitor.Start(fileChangeChan, file)
 	}
