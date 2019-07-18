@@ -26,10 +26,15 @@ func SetOption(c *cli.Context) {
 	if files := c.StringSlice("f"); len(files) != 0 {
 		opt.TargetFile = make([]string, len(files))
 		copy(opt.TargetFile, files)
-		opt.Cmd = c.Args().Get(0)
+
 	} else {
-		opt.TargetFile = make([]string, 1)
+		opt.TargetFile = make([]string, c.NArg()-1)
+		for i := 0; i < c.NArg()-1; i++ {
+			opt.TargetFile[i] = c.Args().Get(i)
+		}
 		opt.TargetFile[0] = c.Args().Get(0)
-		opt.Cmd = c.Args().Get(1)
 	}
+
+	opt.Cmd = c.Args().Get(c.NArg() - 1)
+
 }
