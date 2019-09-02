@@ -7,7 +7,9 @@ import (
 	"github.com/urfave/cli"
 )
 
-const version = "v0.0.4"
+var (
+	Version string
+)
 
 func main() {
 	app := newApp()
@@ -25,7 +27,7 @@ func newApp() *cli.App {
 	app.Name = "Monitor"
 	app.Usage = "Monitor files changed and run a command"
 	app.Author = "maitaken"
-	app.Version = version
+	app.Version = Version
 	app.Flags = appFlag()
 
 	return app
