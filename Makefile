@@ -1,3 +1,5 @@
+SRCS := $(shell find . -type f -name '*.go')
+
 export GO111MODULE=on
 
 GOCMD=go
@@ -11,3 +13,6 @@ install: devs
 	
 devs:
 	go get
+
+fmt:
+	goimports -w $(SRCS)
