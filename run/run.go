@@ -5,7 +5,7 @@ import (
 
 	"github.com/maitaken/monitor/monitor"
 	"github.com/maitaken/monitor/option"
-	"github.com/maitaken/monitor/util"
+	"github.com/maitaken/monitor/exec"
 	"github.com/urfave/cli"
 )
 
@@ -15,7 +15,7 @@ func Run(c *cli.Context) {
 	opt := option.GetOption()
 
 	fileChangeChan := make(chan string, len(opt.TargetFile))
-	shell := util.New(opt.Cmd)
+	shell := exec.New(opt.Cmd)
 	var cancelFunc context.CancelFunc
 
 	for _, file := range opt.TargetFile {
