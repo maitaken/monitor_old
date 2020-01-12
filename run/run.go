@@ -3,9 +3,9 @@ package run
 import (
 	"context"
 
+	"github.com/maitaken/monitor/exec"
 	"github.com/maitaken/monitor/monitor"
 	"github.com/maitaken/monitor/option"
-	"github.com/maitaken/monitor/exec"
 	"github.com/urfave/cli"
 )
 
