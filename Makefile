@@ -5,14 +5,11 @@ export GO111MODULE=on
 GOCMD=go
 GOPHER='ʕ◔ϖ◔ʔ'
 
-VERSION=v0.0.5
+VERSION=v0.1.0
 LDFLAGS=-ldflags "-X main.Version=$(VERSION)"
 
-install: devs
-	cd ./cmd/monitor; go install ${LDFLAGS}
-	
-devs:
-	go get
+install:
+	go install ${LDFLAGS} ./cmd/monitor
 
 fmt:
 	goimports -w $(SRCS)

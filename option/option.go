@@ -1,6 +1,7 @@
 package option
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 
@@ -20,14 +21,13 @@ func init() {
 	opt = &Option{}
 }
 
-func GetOption() *Option {
-	return opt
+func GetOption() (*Option, error) {
+	return opt, checkOpt(opt)
 }
 
 func SetOption(c *cli.Context) {
 	// 引数とオプションの整理
 	if paths := c.StringSlice("f"); len(paths) != 0 {
-
 		for _, path := range paths {
 			p, e := filepath.Glob(path)
 			if e != nil {
@@ -48,5 +48,17 @@ func SetOption(c *cli.Context) {
 		}
 	}
 
-	opt.Cmd = c.Args().Get(c.NArg() - 1)
+	narg := c.NArg()
+	if narg != 0 {
+		opt.Cmd = c.Args().Get(c.NArg() - 1)
+	}
+}
+
+func checkOpt(opt *Option) error {
+	if len(opt.TargetFile) == 0 {
+		return errors.New("invalid argument(target file)")
+	} else if len(opt.Cmd) == 0 {
+		return errors.New("invalid argument(command)")
+	}
+	return nil
 }

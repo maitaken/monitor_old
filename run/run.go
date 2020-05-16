@@ -2,6 +2,8 @@ package run
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	"github.com/maitaken/monitor/exec"
 	"github.com/maitaken/monitor/monitor"
@@ -12,7 +14,11 @@ import (
 func Run(c *cli.Context) {
 
 	option.SetOption(c)
-	opt := option.GetOption()
+	opt, e := option.GetOption()
+	if e != nil {
+		fmt.Println(e)
+		os.Exit(1)
+	}
 
 	fileChangeChan := make(chan string, len(opt.TargetFile))
 	shell := exec.New(opt.Cmd)
