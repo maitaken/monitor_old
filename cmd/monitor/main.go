@@ -25,7 +25,7 @@ func main() {
 func newApp() *cli.App {
 	app := cli.NewApp()
 	app.Name = "Monitor"
-	app.Usage = "Monitor files changed and run a command"
+	app.Usage = "Monitor files and run a command when modified"
 	app.Author = "maitaken"
 	app.Version = Version
 	app.Flags = appFlag()
@@ -37,7 +37,7 @@ func appFlag() []cli.Flag {
 	return []cli.Flag{
 		cli.StringSliceFlag{
 			Name:  "file, f",
-			Usage: "Monitoring file name",
+			Usage: "specify the target file",
 		},
 	}
 }
