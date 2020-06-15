@@ -15,6 +15,7 @@ var opt *Option
 type Option struct {
 	TargetFile []string
 	Cmd        string
+	Shortened  bool
 }
 
 func init() {
@@ -47,6 +48,8 @@ func SetOption(c *cli.Context) {
 			opt.TargetFile = append(opt.TargetFile, p...)
 		}
 	}
+
+	opt.Shortened = c.Bool("s")
 
 	narg := c.NArg()
 	if narg != 0 {

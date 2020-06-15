@@ -39,5 +39,9 @@ func appFlag() []cli.Flag {
 			Name:  "file, f",
 			Usage: "specify the target file",
 		},
+		cli.BoolFlag{
+			Name:  "shortened-output, s",
+			Usage: "print shortened output",
+		},
 	}
 }
