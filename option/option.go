@@ -16,6 +16,7 @@ type Option struct {
 	TargetFile []string
 	Cmd        string
 	Shortened  bool
+	Timeout    int
 }
 
 func init() {
@@ -50,6 +51,7 @@ func SetOption(c *cli.Context) {
 	}
 
 	opt.Shortened = c.Bool("s")
+	opt.Timeout = c.Int("t")
 
 	narg := c.NArg()
 	if narg != 0 {

@@ -43,5 +43,9 @@ func appFlag() []cli.Flag {
 			Name:  "shortened-output, s",
 			Usage: "print shortened output",
 		},
+		cli.IntFlag{
+			Name:  "time-out, t",
+			Usage: "setting time-out",
+		},
 	}
 }
