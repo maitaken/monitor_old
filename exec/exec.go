@@ -59,7 +59,7 @@ func Execute() context.CancelFunc {
 		switch e.Type {
 		case SUCCESS:
 			print.Success(out, opt.Cmd, diff)
-		case FAILED | TIMEOUT:
+		case FAILED, TIMEOUT:
 			print.Error(out, opt.Cmd, e)
 		}
 	}()
@@ -97,11 +97,11 @@ func run(ctx context.Context, command string) ([]byte, *ExecError) {
 	e := cmd.Wait()
 	close(done)
 
-	if len(errChan) != 0 {
-		return buf.Bytes(), <-errChan
-	}
 	if e != nil {
 		return buf.Bytes(), NewExecError(FAILED, "Command Failed")
+	}
+	if len(errChan) != 0 {
+		return buf.Bytes(), <-errChan
 	}
 	return buf.Bytes(), NewExecError(SUCCESS, "")
 }
