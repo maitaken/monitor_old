@@ -1,150 +1,118 @@
 package exec
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"os"
 	"os/exec"
-	"strings"
+	"syscall"
 	"time"
 
-	"github.com/gosuri/uilive"
-	"github.com/ttacon/chalk"
-	"golang.org/x/crypto/ssh/terminal"
-
 	"github.com/maitaken/monitor/option"
+	"github.com/maitaken/monitor/print"
 )
 
-const POINT = "...................."
+type ExecErrorType int
+
+const (
+	SUCCESS ExecErrorType = iota
+	FAILED
+	CANCELED
+	TIMEOUT
+)
+
+const KILL_INTERVAL = 500
 
 var opt *option.Option
 
-type TermInfo struct {
-	ClearStr string
-	Lines    int
-	Cols     int
+type ExecError struct {
+	Type    ExecErrorType
+	message string
 }
 
-type ShellWriter struct {
-	writer *uilive.Writer
-	cmd    string
-	info   *TermInfo
-	cancel context.CancelFunc
-}
-
-func New(cmd string) *ShellWriter {
-	opt, _ = option.GetOption()
-	w := uilive.New()
-	w.Start()
-	return &ShellWriter{
-		writer: w,
-		cmd:    cmd,
-		info:   getTermInfo(),
+func NewExecError(t ExecErrorType, m string) *ExecError {
+	return &ExecError{
+		Type:    t,
+		message: m,
 	}
 }
 
-func (w *ShellWriter) Execute() context.CancelFunc {
+func (e *ExecError) Error() string {
+	return e.message
+}
+
+func init() {
+	opt = option.GetOption()
+}
+
+func Execute() context.CancelFunc {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go func() {
-		execCtx, execCancel := context.WithCancel(ctx)
-
-		go w.executePrint(execCtx)
+		go print.Execute(ctx, opt.Cmd)
 
 		startDate := time.Now()
-		out, e := exec.CommandContext(execCtx, "sh", "-c", w.cmd).CombinedOutput()
+		out, e := run(ctx, opt.Cmd)
 		diff := time.Since(startDate)
-		execCancel()
+		defer cancel()
 
-		if e != nil {
-			w.errorPrint(out)
-		} else {
-			w.successPrint(out, diff)
+		switch e.Type {
+		case SUCCESS:
+			print.Success(out, opt.Cmd, diff)
+		case FAILED | TIMEOUT:
+			print.Error(out, opt.Cmd, e)
 		}
 	}()
 	return cancel
 }
 
-// 実行中の表示を行う関数
-func (w *ShellWriter) executePrint(ctx context.Context) {
-	var index int
-	fmt.Fprint(w.writer, w.info.ClearStr)
-	for range time.Tick(100 * time.Millisecond) {
-		if len(POINT) == index {
-			index = 0
-		}
+func run(ctx context.Context, command string) ([]byte, *ExecError) {
+	var buf bytes.Buffer
+	errChan := make(chan *ExecError, 1)
+	done := make(chan struct{})
+
+	cmd := exec.Command("sh", "-c", command)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+
+	cmd.Stdout = &buf
+	cmd.Stderr = &buf
+
+	cmd.Start()
+	pgid, _ := syscall.Getpgid(cmd.Process.Pid)
+
+	go func() {
+		timeout := generateTimer()
 		select {
+		case <-timeout:
+			errChan <- NewExecError(TIMEOUT, fmt.Sprintf("Command Timeout (%ds)", opt.Timeout))
+			syscall.Kill(-pgid, 15)
+
 		case <-ctx.Done():
-			return
-		default:
-			fmt.Fprint(w.writer, chalk.Yellow.Color("Command Executing"))
-			fmt.Fprintln(w.writer, " : "+w.cmd)
-			fmt.Fprintln(w.writer, POINT[:index])
+			errChan <- NewExecError(CANCELED, "Command Canceled")
+			syscall.Kill(-pgid, 15)
+		case <-done:
 		}
-		index += 1
+	}()
+
+	e := cmd.Wait()
+	close(done)
+
+	if len(errChan) != 0 {
+		return buf.Bytes(), <-errChan
 	}
+	if e != nil {
+		return buf.Bytes(), NewExecError(FAILED, "Command Failed")
+	}
+	return buf.Bytes(), NewExecError(SUCCESS, "")
 }
 
-// コマンドの実行結果がエラー時の出力
-func (w *ShellWriter) errorPrint(out []byte) {
-	fmt.Fprint(w.writer, w.info.ClearStr)
-	fmt.Fprint(w.writer, chalk.Red.Color("Command Faild"))
-	fmt.Fprintln(w.writer, " : "+w.cmd)
-	fmt.Fprint(w.writer, string(out))
-}
-
-// コマンドの実行結果が成功時の出力
-func (w *ShellWriter) successPrint(out []byte, t time.Duration) {
-	w.info = getTermInfo()
-
-	outStrs := strings.Split(string(out), "\n")
-	fmt.Fprint(w.writer, w.info.ClearStr)
-	fmt.Fprint(w.writer, chalk.Green.Color("Command Success"), " : ", w.cmd)
-
-	// outLines := len(outStrs)
-	// 出力を短縮する場合
-	for index, row := range outStrs {
-		if opt.Shortened {
-			if index == w.info.Lines-4 {
-				break
-			}
-			outCols := len(row)
-			if outCols <= w.info.Cols {
-				fmt.Fprintln(w.writer, row)
-			} else {
-				trinRow := row[:w.info.Cols-3] + "..."
-				fmt.Fprintln(w.writer, trinRow)
-			}
-
-		} else {
-			fmt.Fprintln(w.writer, row)
+func generateTimer() chan struct{} {
+	c := make(chan struct{})
+	go func() {
+		if opt.Timeout != 0 {
+			time.Sleep(time.Duration(opt.Timeout) * time.Second)
+			c <- struct{}{}
 		}
-	}
-	for i := len(outStrs); i < w.info.Lines-4; i++ {
-		fmt.Fprintln(w.writer, "")
-	}
-
-	row := strings.Repeat("-", w.info.Cols)
-	fmt.Fprintln(w.writer, "")
-	fmt.Fprintln(w.writer, row)
-	fmt.Fprintln(w.writer, " Time : ", t)
-	fmt.Fprint(w.writer, row)
-}
-
-func getTermInfo() *TermInfo {
-	clearStr, e := exec.Command("tput", "clear").Output()
-	if e != nil {
-		os.Exit(1)
-	}
-	// 標準出力先のサイズ(仮想端末のはず)
-	cols, lines, e := terminal.GetSize(1)
-	if e != nil {
-		os.Exit(1)
-	}
-
-	return &TermInfo{
-		ClearStr: string(clearStr),
-		Lines:    lines,
-		Cols:     cols,
-	}
+	}()
+	return c
 }

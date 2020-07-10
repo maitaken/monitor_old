@@ -2,6 +2,7 @@ package option
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -23,8 +24,8 @@ func init() {
 	opt = &Option{}
 }
 
-func GetOption() (*Option, error) {
-	return opt, checkOpt(opt)
+func GetOption() *Option {
+	return opt
 }
 
 func SetOption(c *cli.Context) {
@@ -53,13 +54,13 @@ func SetOption(c *cli.Context) {
 	opt.Shortened = c.Bool("s")
 	opt.Timeout = c.Int("t")
 
-	narg := c.NArg()
-	if narg != 0 {
-		opt.Cmd = c.Args().Get(c.NArg() - 1)
+	if n := c.NArg(); n != 0 {
+		opt.Cmd = c.Args().Get(n - 1)
 	}
 }
 
 func checkOpt(opt *Option) error {
+	fmt.Println(opt.TargetFile, opt.Cmd)
 	if len(opt.TargetFile) == 0 {
 		return errors.New("invalid argument(target file)")
 	} else if len(opt.Cmd) == 0 {
