@@ -5,7 +5,7 @@ export GO111MODULE=on
 GOCMD=go
 GOPHER='ʕ◔ϖ◔ʔ'
 
-VERSION=v0.3.1
+VERSION=v0.3.2
 LDFLAGS=-ldflags "-X main.Version=$(VERSION)"
 
 install:

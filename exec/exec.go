@@ -97,11 +97,11 @@ func run(ctx context.Context, command string) ([]byte, *ExecError) {
 	e := cmd.Wait()
 	close(done)
 
-	if e != nil {
-		return buf.Bytes(), NewExecError(FAILED, "Command Failed")
-	}
 	if len(errChan) != 0 {
 		return buf.Bytes(), <-errChan
+	}
+	if e != nil {
+		return buf.Bytes(), NewExecError(FAILED, "Command Failed")
 	}
 	return buf.Bytes(), NewExecError(SUCCESS, "")
 }

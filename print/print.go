@@ -79,8 +79,8 @@ func Success(out []byte, cmd string, t time.Duration) {
 			if outCols <= writer.info.Cols {
 				fmt.Fprintln(writer.w, row)
 			} else {
-				trinRow := row[:writer.info.Cols-3] + "..."
-				fmt.Fprintln(writer.w, trinRow)
+				trimRow := row[:writer.info.Cols-3] + "..."
+				fmt.Fprintln(writer.w, trimRow)
 			}
 
 		} else {
